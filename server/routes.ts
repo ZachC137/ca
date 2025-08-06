@@ -162,8 +162,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             grid,
             mineCount,
             revealedCells,
+            row,
+            col,
           } = gameData || {};
-          result = playMines(minesAction, grid, mineCount, revealedCells);
+          result = playMines(minesAction, grid, mineCount, revealedCells, { row, col });
           multiplier = result.multiplier;
           winAmount = betAmount * multiplier;
           break;
@@ -171,9 +173,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const {
             action: hiloAction,
             currentCard,
-            prediction,
+            prediction: hiloPrediction,
+            streak,
           } = gameData || {};
-          result = playHiLo(hiloAction, currentCard, prediction);
+          result = playHiLo(hiloAction, currentCard, hiloPrediction, streak);
           multiplier = result.multiplier;
           winAmount = betAmount * multiplier;
           break;
@@ -749,6 +752,7 @@ function playMines(
   grid?: boolean[][],
   mineCount = 5,
   revealedCells?: boolean[][],
+  cellData?: { row: number; col: number }
 ) {
   if (action === "start" || !grid) {
     // Initialize new game
@@ -780,7 +784,7 @@ function playMines(
   }
 
   if (action === "reveal") {
-    const { row, col } = arguments[4] || {};
+    const { row, col } = cellData || {};
     if (
       grid &&
       revealedCells &&
@@ -840,6 +844,7 @@ function playHiLo(
   action: string,
   currentCard?: number,
   prediction?: "higher" | "lower",
+  streak?: number
 ) {
   if (action === "start" || !currentCard) {
     const newCard = Math.floor(Math.random() * 13) + 1; // 1-13 (A-K)
@@ -855,14 +860,14 @@ function playHiLo(
     if (nextCard === currentCard) correct = false; // Tie loses
 
     if (correct) {
-      const streak = (arguments[3] || 0) + 1;
-      const multiplier = Math.pow(1.5, streak);
+      const newStreak = (streak || 0) + 1;
+      const multiplier = Math.pow(1.5, newStreak);
       return {
         currentCard: nextCard,
         nextCard,
         multiplier,
         gameOver: false,
-        streak,
+        streak: newStreak,
         correct,
       };
     } else {
