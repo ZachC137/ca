@@ -333,7 +333,10 @@ export default function Crash() {
                         Your target: {lastResult.gameData.cashoutMultiplier.toFixed(2)}x
                       </div>
                       <div className="text-lg text-[hsl(43,96%,56%)]">
-                        {lastResult.result === 'win' ? '+' : '-'}${Math.abs(lastResult.winAmount - lastResult.betAmount || lastResult.betAmount).toFixed(2)}
+                        {lastResult.result === 'win' 
+                          ? `+$${(lastResult.winAmount - lastResult.betAmount).toFixed(2)}`
+                          : `-$${lastResult.betAmount.toFixed(2)}`
+                        }
                       </div>
                     </div>
                   ) : (

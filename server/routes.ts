@@ -108,7 +108,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const cashoutMultiplier = gameData?.cashoutMultiplier || 0;
           result = playCrash(cashoutMultiplier);
           multiplier = result.success ? cashoutMultiplier : 0;
-          winAmount = betAmount * multiplier;
+          winAmount = result.success ? betAmount * cashoutMultiplier : 0;
           break;
         case 'dice':
           const prediction = gameData?.prediction; // 'high' or 'low'
@@ -184,6 +184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         result: gameResultType,
         multiplier,
         winAmount,
+        betAmount,
         newBalance,
         gameData: result,
       });
