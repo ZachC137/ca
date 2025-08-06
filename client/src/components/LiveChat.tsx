@@ -67,9 +67,18 @@ export default function LiveChat() {
     };
   }, []);
 
-  // Auto scroll to bottom
+  // Auto scroll to bottom only when user sends a message or initially loads
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messages.length > 0) {
+      // Only auto-scroll if user is near the bottom of the chat
+      const container = messagesEndRef.current?.parentElement;
+      if (container) {
+        const isNearBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 100;
+        if (isNearBottom) {
+          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }
+      }
+    }
   }, [messages]);
 
   const sendMessage = () => {

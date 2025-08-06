@@ -205,6 +205,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add funds to wallet
+  app.post('/api/wallet/add-funds', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { amount, method } = req.body;
+
+      if (!amount || amount <= 0 || amount > 10000) {
+        return res.status(400).json({ message: "Invalid amount. Must be between $1 and $10,000" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const currentBalance = parseFloat(user.balance || "0");
+      const newBalance = (currentBalance + amount).toFixed(2);
+
+      // Update user balance
+      await storage.updateUserBalance(userId, newBalance);
+
+      // Create transaction record
+      await storage.createTransaction({
+        userId,
+        type: "deposit",
+        amount: amount.toString(),
+        balanceAfter: newBalance,
+        description: `Virtual funds deposit via ${method}`,
+      });
+
+      res.json({ 
+        message: "Funds added successfully", 
+        newBalance,
+        amount: amount.toFixed(2)
+      });
+    } catch (error) {
+      console.error("Error adding funds:", error);
+      res.status(500).json({ message: "Failed to add funds" });
+    }
+  });
+
   // Daily bonus
   app.post('/api/daily-bonus', isAuthenticated, async (req: any, res) => {
     try {

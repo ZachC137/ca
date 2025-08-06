@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Wallet, Plus, Minus, Gift } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import AddFundsModal from "./AddFundsModal";
 import type { User } from "@shared/schema";
 
 interface WalletSectionProps {
@@ -11,6 +13,7 @@ interface WalletSectionProps {
 }
 
 export default function WalletSection({ user }: WalletSectionProps) {
+  const [showAddFundsModal, setShowAddFundsModal] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -93,12 +96,12 @@ export default function WalletSection({ user }: WalletSectionProps) {
           )}
           
           <Button 
+            onClick={() => setShowAddFundsModal(true)}
             className="w-full bg-gradient-to-r from-[hsl(220,91%,57%)] to-[hsl(258,90%,66%)] hover:shadow-lg hover:shadow-[hsl(220,91%,57%)]/25 transition-all duration-300"
             data-testid="button-add-funds"
-            disabled
           >
             <Plus className="mr-2 h-4 w-4" />
-            Add Funds (Coming Soon)
+            Add Funds
           </Button>
           
           <Button 
@@ -129,6 +132,11 @@ export default function WalletSection({ user }: WalletSectionProps) {
           </div>
         </div>
       </CardContent>
+      
+      <AddFundsModal 
+        open={showAddFundsModal} 
+        onOpenChange={setShowAddFundsModal}
+      />
     </Card>
   );
 }
