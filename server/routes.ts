@@ -138,6 +138,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
           multiplier = result.multiplier;
           winAmount = betAmount * multiplier;
           break;
+        case 'baccarat':
+          const baccaratBet = gameData?.bet;
+          result = playBaccarat(baccaratBet);
+          multiplier = result.multiplier;
+          winAmount = betAmount * multiplier;
+          break;
+        case 'keno':
+          const selectedNumbers = gameData?.selectedNumbers || [];
+          result = playKeno(selectedNumbers);
+          multiplier = result.multiplier;
+          winAmount = betAmount * multiplier;
+          break;
+        case 'wheel':
+          const wheelBet = gameData?.bet;
+          result = playWheel(wheelBet);
+          multiplier = result.multiplier;
+          winAmount = betAmount * multiplier;
+          break;
+        case 'mines':
+          const { action: minesAction, grid, mineCount, revealedCells } = gameData || {};
+          result = playMines(minesAction, grid, mineCount, revealedCells);
+          multiplier = result.multiplier;
+          winAmount = betAmount * multiplier;
+          break;
+        case 'hilo':
+          const { action: hiloAction, currentCard, prediction } = gameData || {};
+          result = playHiLo(hiloAction, currentCard, prediction);
+          multiplier = result.multiplier;
+          winAmount = betAmount * multiplier;
+          break;
         default:
           return res.status(400).json({ message: "Invalid game type" });
       }
@@ -558,4 +588,177 @@ function playPlinko() {
   const multipliers = [0.2, 0.5, 1, 1.5, 2, 5, 10, 5, 2, 1.5, 1, 0.5, 0.2];
   const slot = Math.floor(Math.random() * multipliers.length);
   return { slot, multiplier: multipliers[slot] };
+}
+
+function playBaccarat(bet: { type: 'player' | 'banker' | 'tie' }) {
+  // Deal cards
+  const dealCard = () => Math.floor(Math.random() * 13) + 1;
+  const cardValue = (card: number) => card > 10 ? 0 : card;
+  
+  let playerCards = [dealCard(), dealCard()];
+  let bankerCards = [dealCard(), dealCard()];
+  
+  let playerTotal = (cardValue(playerCards[0]) + cardValue(playerCards[1])) % 10;
+  let bankerTotal = (cardValue(bankerCards[0]) + cardValue(bankerCards[1])) % 10;
+  
+  // Third card rules
+  if (playerTotal <= 5) {
+    const thirdCard = dealCard();
+    playerCards.push(thirdCard);
+    playerTotal = (playerTotal + cardValue(thirdCard)) % 10;
+  }
+  
+  if (bankerTotal <= 6 && playerCards.length === 2) {
+    const thirdCard = dealCard();
+    bankerCards.push(thirdCard);
+    bankerTotal = (bankerTotal + cardValue(thirdCard)) % 10;
+  }
+  
+  let winner: 'player' | 'banker' | 'tie';
+  if (playerTotal > bankerTotal) winner = 'player';
+  else if (bankerTotal > playerTotal) winner = 'banker';
+  else winner = 'tie';
+  
+  let multiplier = 0;
+  if (bet.type === winner) {
+    multiplier = winner === 'tie' ? 8 : winner === 'banker' ? 1.95 : 2;
+  }
+  
+  return { playerCards, bankerCards, playerTotal, bankerTotal, winner, multiplier };
+}
+
+function playKeno(selectedNumbers: number[]) {
+  // Draw 20 random numbers from 1-80
+  const drawnNumbers = [];
+  while (drawnNumbers.length < 20) {
+    const num = Math.floor(Math.random() * 80) + 1;
+    if (!drawnNumbers.includes(num)) {
+      drawnNumbers.push(num);
+    }
+  }
+  
+  const matches = selectedNumbers.filter(num => drawnNumbers.includes(num)).length;
+  const spots = selectedNumbers.length;
+  
+  // Keno payout table (simplified)
+  const payoutTable: { [key: string]: { [key: number]: number } } = {
+    '1': { 1: 3 },
+    '2': { 2: 12 },
+    '3': { 2: 1, 3: 42 },
+    '4': { 2: 1, 3: 4, 4: 142 },
+    '5': { 3: 1, 4: 12, 5: 810 },
+    '6': { 3: 1, 4: 3, 5: 72, 6: 1800 },
+    '7': { 4: 1, 5: 21, 6: 400, 7: 7000 },
+    '8': { 5: 12, 6: 98, 7: 1652, 8: 25000 },
+    '9': { 5: 5, 6: 44, 7: 335, 8: 4700, 9: 25000 },
+    '10': { 5: 2, 6: 24, 7: 142, 8: 1000, 9: 4500, 10: 25000 }
+  };
+  
+  const multiplier = payoutTable[spots.toString()]?.[matches] || 0;
+  
+  return { drawnNumbers, matches, multiplier, selectedNumbers };
+}
+
+function playWheel(bet: { type: 'number' | 'color' | 'multiplier', value: any }) {
+  const segments = [
+    { number: 1, color: 'red', multiplier: 2 },
+    { number: 2, color: 'blue', multiplier: 2 },
+    { number: 5, color: 'yellow', multiplier: 5 },
+    { number: 10, color: 'green', multiplier: 10 },
+    { number: 1, color: 'red', multiplier: 2 },
+    { number: 2, color: 'blue', multiplier: 2 },
+    { number: 5, color: 'yellow', multiplier: 5 },
+    { number: 20, color: 'purple', multiplier: 20 },
+    { number: 1, color: 'red', multiplier: 2 },
+    { number: 2, color: 'blue', multiplier: 2 },
+    { number: 5, color: 'yellow', multiplier: 5 },
+    { number: 40, color: 'orange', multiplier: 40 }
+  ];
+  
+  const winningSegment = segments[Math.floor(Math.random() * segments.length)];
+  let multiplier = 0;
+  
+  if (bet.type === 'number' && bet.value === winningSegment.number) {
+    multiplier = winningSegment.multiplier;
+  } else if (bet.type === 'color' && bet.value === winningSegment.color) {
+    multiplier = 2;
+  } else if (bet.type === 'multiplier' && bet.value === winningSegment.multiplier) {
+    multiplier = winningSegment.multiplier;
+  }
+  
+  return { winningSegment, multiplier };
+}
+
+function playMines(action: string, grid?: boolean[][], mineCount = 5, revealedCells?: boolean[][]) {
+  if (action === 'start' || !grid) {
+    // Initialize new game
+    const newGrid = Array(5).fill(null).map(() => Array(5).fill(false));
+    const newRevealed = Array(5).fill(null).map(() => Array(5).fill(false));
+    
+    // Place mines randomly
+    let minesPlaced = 0;
+    while (minesPlaced < mineCount) {
+      const row = Math.floor(Math.random() * 5);
+      const col = Math.floor(Math.random() * 5);
+      if (!newGrid[row][col]) {
+        newGrid[row][col] = true;
+        minesPlaced++;
+      }
+    }
+    
+    return { grid: newGrid, revealedCells: newRevealed, multiplier: 1, gameOver: false, won: false };
+  }
+  
+  if (action === 'reveal') {
+    const { row, col } = arguments[4] || {};
+    if (grid && revealedCells && typeof row === 'number' && typeof col === 'number') {
+      const newRevealed = revealedCells.map(r => [...r]);
+      newRevealed[row][col] = true;
+      
+      if (grid[row][col]) {
+        // Hit a mine
+        return { grid, revealedCells: newRevealed, multiplier: 0, gameOver: true, won: false };
+      } else {
+        // Safe cell
+        const revealedCount = newRevealed.flat().filter(Boolean).length;
+        const safeCount = 25 - mineCount;
+        const multiplier = Math.pow(1.2, revealedCount);
+        
+        if (revealedCount === safeCount) {
+          // Won the game
+          return { grid, revealedCells: newRevealed, multiplier, gameOver: true, won: true };
+        }
+        
+        return { grid, revealedCells: newRevealed, multiplier, gameOver: false, won: false };
+      }
+    }
+  }
+  
+  return { grid: grid || [], revealedCells: revealedCells || [], multiplier: 0, gameOver: false, won: false };
+}
+
+function playHiLo(action: string, currentCard?: number, prediction?: 'higher' | 'lower') {
+  if (action === 'start' || !currentCard) {
+    const newCard = Math.floor(Math.random() * 13) + 1; // 1-13 (A-K)
+    return { currentCard: newCard, multiplier: 1, gameOver: false, streak: 0 };
+  }
+  
+  if (action === 'predict' && currentCard && prediction) {
+    const nextCard = Math.floor(Math.random() * 13) + 1;
+    let correct = false;
+    
+    if (prediction === 'higher' && nextCard > currentCard) correct = true;
+    if (prediction === 'lower' && nextCard < currentCard) correct = true;
+    if (nextCard === currentCard) correct = false; // Tie loses
+    
+    if (correct) {
+      const streak = (arguments[3] || 0) + 1;
+      const multiplier = Math.pow(1.5, streak);
+      return { currentCard: nextCard, nextCard, multiplier, gameOver: false, streak, correct };
+    } else {
+      return { currentCard, nextCard, multiplier: 0, gameOver: true, streak: 0, correct };
+    }
+  }
+  
+  return { currentCard: currentCard || 1, multiplier: 0, gameOver: false, streak: 0 };
 }

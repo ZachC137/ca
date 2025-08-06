@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
@@ -96,7 +95,67 @@ const games = [
     buttonText: "Flip Coin",
     buttonColor: "from-[hsl(258,90%,66%)] to-purple-600",
     path: "/games/coinflip",
-    popularity: 71
+    popularity: 75
+  },
+  {
+    id: "baccarat",
+    name: "Baccarat",
+    type: "baccarat",
+    description: "Classic card game of Player vs Banker",
+    image: "🃖",
+    status: "8:1 Tie",
+    buttonText: "Deal Cards",
+    buttonColor: "from-purple-500 to-pink-600",
+    path: "/games/baccarat",
+    popularity: 89
+  },
+  {
+    id: "keno",
+    name: "Keno",
+    type: "keno",
+    description: "Pick numbers and watch the draw for big wins",
+    image: "🔢",
+    status: "Max: 25000x",
+    buttonText: "Pick Numbers",
+    buttonColor: "from-orange-500 to-red-600",
+    path: "/games/keno",
+    popularity: 82
+  },
+  {
+    id: "wheel",
+    name: "Wheel of Fortune",
+    type: "wheel",
+    description: "Spin the wheel for multiplied rewards",
+    image: "🎡",
+    status: "Max: 40x",
+    buttonText: "Spin Wheel",
+    buttonColor: "from-pink-500 to-rose-600",
+    path: "/games/wheel",
+    popularity: 91
+  },
+  {
+    id: "mines",
+    name: "Mines",
+    type: "mines",
+    description: "Reveal safe tiles while avoiding hidden mines",
+    image: "💎",
+    status: "Risk/Reward",
+    buttonText: "Start Mining",
+    buttonColor: "from-emerald-500 to-teal-600",
+    path: "/games/mines",
+    popularity: 85
+  },
+  {
+    id: "hilo",
+    name: "Hi-Lo Cards",
+    type: "hilo",
+    description: "Predict if the next card is higher or lower",
+    image: "📈",
+    status: "Streak Bonus",
+    buttonText: "Start Game",
+    buttonColor: "from-cyan-500 to-blue-600",
+    path: "/games/hilo",
+    popularity: 79
   }
 ];
 
@@ -176,7 +235,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-casino-dark via-casino-navy to-casino-dark text-white">
       <Header />
-      
+
       <div className="container mx-auto px-4 py-8">
         {/* Welcome Section with Live Stats */}
         <div className="mb-8">
@@ -200,7 +259,7 @@ export default function Dashboard() {
                 <div className="text-xs text-[hsl(215,13%,45%)]">Players Online</div>
               </CardContent>
             </Card>
-            
+
             <Card className="glass-effect hover:scale-105 transition-transform duration-300">
               <CardContent className="p-4 text-center">
                 <TrendingUp className="w-8 h-8 text-green-400 mx-auto mb-2" />
@@ -210,7 +269,7 @@ export default function Dashboard() {
                 <div className="text-xs text-[hsl(215,13%,45%)]">Total Winnings</div>
               </CardContent>
             </Card>
-            
+
             <Card className="glass-effect hover:scale-105 transition-transform duration-300">
               <CardContent className="p-4 text-center">
                 <Zap className="w-8 h-8 text-[hsl(258,90%,66%)] mx-auto mb-2" />
@@ -220,7 +279,7 @@ export default function Dashboard() {
                 <div className="text-xs text-[hsl(215,13%,45%)]">Games Today</div>
               </CardContent>
             </Card>
-            
+
             <Card className="glass-effect hover:scale-105 transition-transform duration-300">
               <CardContent className="p-4 text-center">
                 <Award className="w-8 h-8 text-[hsl(43,96%,56%)] mx-auto mb-2" />
@@ -240,7 +299,7 @@ export default function Dashboard() {
               <h2 className="text-3xl font-bold">🎮 Choose Your Game</h2>
               <Badge variant="secondary" className="bg-[hsl(43,96%,56%)]/20 text-[hsl(43,96%,56%)]">
                 <Star className="w-4 h-4 mr-1" />
-                7 Games Available
+                {games.length} Games Available
               </Badge>
             </div>
 
@@ -254,7 +313,7 @@ export default function Dashboard() {
                       </div>
                       <h3 className="text-xl font-bold mb-2">{game.name}</h3>
                       <p className="text-[hsl(215,13%,45%)] text-sm mb-3">{game.description}</p>
-                      
+
                       {/* Popularity Bar */}
                       <div className="mb-3">
                         <div className="flex justify-between text-xs mb-1">
@@ -268,12 +327,12 @@ export default function Dashboard() {
                           ></div>
                         </div>
                       </div>
-                      
+
                       <Badge variant="outline" className="border-[hsl(43,96%,56%)] text-[hsl(43,96%,56%)] mb-4">
                         {game.status}
                       </Badge>
                     </div>
-                    
+
                     <Link href={game.path}>
                       <Button 
                         className={`w-full bg-gradient-to-r ${game.buttonColor} hover:shadow-lg transition-all duration-300 group-hover:scale-105`}
