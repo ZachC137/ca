@@ -137,29 +137,29 @@ export default function Dice() {
                   {/* Dice Display */}
                   <div className="text-center mb-8">
                     <div className="relative inline-block">
-                      <div className={`w-32 h-32 bg-white rounded-lg flex items-center justify-center mx-auto mb-4 ${
+                      <div className={`w-24 h-24 bg-white rounded-xl flex items-center justify-center mx-auto mb-6 shadow-lg ${
                         rolling ? 'animate-spin' : ''
                       }`}>
-                        <div className="text-6xl text-black font-bold" data-testid="dice-display">
+                        <div className="text-4xl text-black font-bold" data-testid="dice-display">
                           {rolling ? '?' : (lastResult?.gameData?.roll || '?')}
                         </div>
                       </div>
                       {rolling && (
-                        <div className="absolute -inset-4 border-4 border-[hsl(220,91%,57%)] rounded-lg animate-pulse"></div>
+                        <div className="absolute -inset-2 border-2 border-[hsl(220,91%,57%)] rounded-xl animate-pulse"></div>
                       )}
                     </div>
                     
                     {lastResult && !rolling && (
                       <div className="mt-4" data-testid="result-display">
-                        <div className={`text-2xl font-bold ${
+                        <div className={`text-xl font-bold mb-2 ${
                           lastResult.result === 'win' ? 'text-green-400' : 'text-red-400'
                         }`}>
                           {lastResult.result === 'win' ? 'WIN!' : 'LOSS'}
                         </div>
-                        <div className="text-[hsl(215,13%,45%)]">
+                        <div className="text-sm text-[hsl(215,13%,45%)] mb-1">
                           You predicted {lastResult.gameData.prediction.toUpperCase()} and rolled {lastResult.gameData.roll}
                         </div>
-                        <div className="text-xl text-[hsl(43,96%,56%)]">
+                        <div className="text-lg text-[hsl(43,96%,56%)] font-semibold">
                           {lastResult.result === 'win' ? '+' : '-'}${Math.abs(lastResult.winAmount - (lastResult.winAmount || lastResult.betAmount)).toFixed(2)}
                         </div>
                       </div>
@@ -172,17 +172,17 @@ export default function Dice() {
                       onClick={() => setPrediction('low')}
                       variant={prediction === 'low' ? 'default' : 'outline'}
                       disabled={rolling}
-                      className={`py-8 text-xl ${
+                      className={`h-20 text-base font-medium ${
                         prediction === 'low' 
-                          ? 'bg-gradient-to-r from-red-500 to-red-600' 
-                          : 'border-red-500/20 hover:bg-red-500/20 text-red-400'
+                          ? 'bg-gradient-to-r from-red-500 to-red-600 text-white' 
+                          : 'border-red-500/30 hover:bg-red-500/10 text-red-400 hover:text-red-300'
                       }`}
                       data-testid="button-predict-low"
                     >
                       <div className="text-center">
-                        <div className="text-2xl mb-2">📉</div>
-                        <div>LOW (1-50)</div>
-                        <div className="text-sm opacity-75">Win Chance: 50%</div>
+                        <div className="text-xl mb-1">📉</div>
+                        <div className="font-bold">LOW (1-50)</div>
+                        <div className="text-xs opacity-80">Win Chance: 50%</div>
                       </div>
                     </Button>
 
@@ -190,17 +190,17 @@ export default function Dice() {
                       onClick={() => setPrediction('high')}
                       variant={prediction === 'high' ? 'default' : 'outline'}
                       disabled={rolling}
-                      className={`py-8 text-xl ${
+                      className={`h-20 text-base font-medium ${
                         prediction === 'high' 
-                          ? 'bg-gradient-to-r from-green-500 to-green-600' 
-                          : 'border-green-500/20 hover:bg-green-500/20 text-green-400'
+                          ? 'bg-gradient-to-r from-green-500 to-green-600 text-white' 
+                          : 'border-green-500/30 hover:bg-green-500/10 text-green-400 hover:text-green-300'
                       }`}
                       data-testid="button-predict-high"
                     >
                       <div className="text-center">
-                        <div className="text-2xl mb-2">📈</div>
-                        <div>HIGH (51-100)</div>
-                        <div className="text-sm opacity-75">Win Chance: 50%</div>
+                        <div className="text-xl mb-1">📈</div>
+                        <div className="font-bold">HIGH (51-100)</div>
+                        <div className="text-xs opacity-80">Win Chance: 50%</div>
                       </div>
                     </Button>
                   </div>
@@ -208,7 +208,7 @@ export default function Dice() {
                   {/* Controls */}
                   <div className="grid grid-cols-2 gap-4 mb-6">
                     <div>
-                      <label className="block text-sm font-medium mb-2">Bet Amount</label>
+                      <label className="block text-sm font-medium mb-2 text-[hsl(215,13%,65%)]">Bet Amount</label>
                       <Input
                         type="number"
                         value={betAmount}
@@ -216,13 +216,13 @@ export default function Dice() {
                         min={1}
                         max={Math.floor(parseFloat(user.balance))}
                         disabled={rolling}
-                        className="bg-[hsl(240,18%,8%)]/50 border-[hsl(220,91%,57%)]/20 text-white"
+                        className="h-12 bg-[hsl(240,18%,8%)]/50 border-[hsl(220,91%,57%)]/20 text-white text-lg font-semibold"
                         data-testid="input-bet-amount"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-2">Balance</label>
-                      <div className="px-3 py-2 bg-[hsl(240,18%,8%)]/50 border border-[hsl(220,91%,57%)]/20 rounded-md text-[hsl(43,96%,56%)] font-bold" data-testid="display-balance">
+                      <label className="block text-sm font-medium mb-2 text-[hsl(215,13%,65%)]">Balance</label>
+                      <div className="h-12 px-3 flex items-center bg-[hsl(240,18%,8%)]/50 border border-[hsl(220,91%,57%)]/20 rounded-md text-[hsl(43,96%,56%)] font-bold text-lg" data-testid="display-balance">
                         ${user.balance}
                       </div>
                     </div>
@@ -231,15 +231,15 @@ export default function Dice() {
                   <Button
                     onClick={handleRoll}
                     disabled={rolling || rollMutation.isPending}
-                    className="w-full bg-gradient-to-r from-[hsl(258,90%,66%)] to-purple-600 hover:shadow-lg hover:shadow-[hsl(258,90%,66%)]/25 transition-all duration-300 text-xl py-4"
+                    className="w-full h-14 bg-gradient-to-r from-[hsl(258,90%,66%)] to-purple-600 hover:shadow-lg hover:shadow-[hsl(258,90%,66%)]/25 transition-all duration-300 text-lg font-bold"
                     data-testid="button-roll"
                   >
                     {rolling ? (
-                      <Dice1 className="mr-2 h-6 w-6 animate-spin" />
+                      <Dice1 className="mr-2 h-5 w-5 animate-spin" />
                     ) : (
                       "🎲"
                     )}
-                    {rolling ? "ROLLING..." : `ROLL DICE (${betAmount} credits)`}
+                    {rolling ? "ROLLING..." : `ROLL DICE ($${betAmount})`}
                   </Button>
                 </CardContent>
               </Card>
@@ -304,8 +304,8 @@ export default function Dice() {
               {/* Quick Bets */}
               <Card className="glass-effect">
                 <CardContent className="p-6">
-                  <h3 className="text-xl font-bold mb-4">Quick Bets</h3>
-                  <div className="grid grid-cols-2 gap-2">
+                  <h3 className="text-lg font-bold mb-4 text-[hsl(258,90%,66%)]">Quick Bets</h3>
+                  <div className="grid grid-cols-2 gap-3">
                     {[1, 5, 10, 25, 50, 100].map((amount) => (
                       <Button
                         key={amount}
@@ -313,7 +313,7 @@ export default function Dice() {
                         variant="outline"
                         size="sm"
                         disabled={rolling}
-                        className="border-[hsl(258,90%,66%)]/20 hover:bg-[hsl(258,90%,66%)]/20"
+                        className="h-10 border-[hsl(258,90%,66%)]/30 hover:bg-[hsl(258,90%,66%)]/20 hover:border-[hsl(258,90%,66%)]/50 font-semibold"
                         data-testid={`button-quick-bet-${amount}`}
                       >
                         ${amount}
