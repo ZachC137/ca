@@ -1,70 +1,78 @@
-import { useEffect } from "react";
+
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
-import GameCard from "@/components/GameCard";
 import UserStats from "@/components/UserStats";
 import WalletSection from "@/components/WalletSection";
 import LiveChat from "@/components/LiveChat";
-import { useQuery } from "@tanstack/react-query";
-import { isUnauthorizedError } from "@/lib/authUtils";
-import type { User } from "@shared/schema";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Dice1, TrendingUp, Users, Star, Clock, Zap, Award } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { useState, useEffect } from "react";
 
 const games = [
   {
     id: "slots",
     name: "Lucky Slots",
     type: "slots",
-    description: "Classic slot machine with multiple paylines and bonus rounds",
+    description: "Spin the reels and match symbols for massive wins",
     image: "🎰",
-    rtp: "96.5%",
-    buttonText: "Play Now",
-    buttonColor: "from-[hsl(220,91%,57%)] to-[hsl(258,90%,66%)]",
-    path: "/games/slots"
+    status: "🔥 Hot",
+    buttonText: "Spin Now",
+    buttonColor: "from-[hsl(43,96%,56%)] to-yellow-600",
+    path: "/games/slots",
+    popularity: 98
   },
   {
     id: "crash",
     name: "Rocket Crash",
     type: "crash",
-    description: "Multiplier-based game - cash out before the crash!",
+    description: "Cash out before the rocket crashes for multiplied wins",
     image: "🚀",
-    status: "Live: 2.45x",
-    buttonText: "Join Game",
-    buttonColor: "from-green-500 to-green-600",
-    path: "/games/crash"
+    status: "Max: 1000x",
+    buttonText: "Launch",
+    buttonColor: "from-red-500 to-orange-600",
+    path: "/games/crash",
+    popularity: 95
   },
   {
     id: "dice",
-    name: "Provably Fair Dice",
+    name: "Dice Roll",
     type: "dice",
-    description: "Bet on high/low outcomes with cryptographic verification",
+    description: "Provably fair dice betting with customizable odds",
     image: "🎲",
-    status: "Provably Fair",
+    status: "50/50 Odds",
     buttonText: "Roll Dice",
-    buttonColor: "from-[hsl(258,90%,66%)] to-purple-600",
-    path: "/games/dice"
+    buttonColor: "from-green-500 to-emerald-600",
+    path: "/games/dice",
+    popularity: 87
   },
   {
     id: "roulette",
-    name: "European Roulette",
+    name: "Roulette",
     type: "roulette",
-    description: "Classic roulette with single zero and multiple betting options",
+    description: "European roulette with single zero advantage",
     image: "🎯",
-    status: "Last: 7 Red",
-    buttonText: "Place Bets",
-    buttonColor: "from-red-500 to-red-600",
-    path: "/games/roulette"
+    status: "35:1 Max",
+    buttonText: "Place Bet",
+    buttonColor: "from-[hsl(258,90%,66%)] to-purple-600",
+    path: "/games/roulette",
+    popularity: 92
   },
   {
     id: "blackjack",
-    name: "Classic Blackjack",
+    name: "Blackjack",
     type: "blackjack",
-    description: "Beat the dealer in this classic card game",
+    description: "Beat the dealer with strategy and luck",
     image: "🃏",
-    rtp: "99.5%",
+    status: "3:2 Payout",
     buttonText: "Deal Cards",
-    buttonColor: "from-[hsl(43,96%,56%)] to-yellow-600",
-    path: "/games/blackjack"
+    buttonColor: "from-blue-500 to-indigo-600",
+    path: "/games/blackjack",
+    popularity: 83
   },
   {
     id: "plinko",
@@ -75,7 +83,8 @@ const games = [
     status: "Max: 1000x",
     buttonText: "Drop Ball",
     buttonColor: "from-[hsl(220,91%,57%)] to-blue-600",
-    path: "/games/plinko"
+    path: "/games/plinko",
+    popularity: 78
   },
   {
     id: "coinflip",
@@ -86,134 +95,266 @@ const games = [
     status: "50/50 Odds",
     buttonText: "Flip Coin",
     buttonColor: "from-[hsl(258,90%,66%)] to-purple-600",
-    path: "/games/coinflip"
+    path: "/games/coinflip",
+    popularity: 71
   }
 ];
 
 export default function Dashboard() {
-  const { toast } = useToast();
-  const { isAuthenticated, isLoading } = useAuth();
-
-  const { data: user } = useQuery<User>({
-    queryKey: ["/api/auth/user"],
-    retry: false,
+  const { user, isLoading } = useAuth();
+  const [liveStats, setLiveStats] = useState({
+    onlinePlayers: 12847,
+    totalWinnings: 2400000,
+    gamesPlayed: 486234,
+    biggestWin: 15420
   });
+  const [recentWins, setRecentWins] = useState([
+    { player: "Player123", game: "Slots", amount: 1250, multiplier: "25x" },
+    { player: "LuckyGamer", game: "Crash", amount: 890, multiplier: "8.9x" },
+    { player: "BetMaster", game: "Roulette", amount: 3500, multiplier: "35x" },
+    { player: "DiceKing", game: "Dice", amount: 450, multiplier: "1.95x" },
+  ]);
 
-  const { data: gameHistory = [] } = useQuery<any[]>({
-    queryKey: ["/api/user/game-history"],
-    retry: false,
-  });
-
+  // Animate live stats
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      toast({
-        title: "Unauthorized",
-        description: "You are logged out. Logging in again...",
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        window.location.href = "/api/login";
-      }, 500);
-    }
-  }, [isAuthenticated, isLoading, toast]);
+    const interval = setInterval(() => {
+      setLiveStats(prev => ({
+        onlinePlayers: prev.onlinePlayers + Math.floor(Math.random() * 10 - 5),
+        totalWinnings: prev.totalWinnings + Math.floor(Math.random() * 1000),
+        gamesPlayed: prev.gamesPlayed + Math.floor(Math.random() * 5),
+        biggestWin: Math.max(prev.biggestWin, prev.biggestWin + Math.floor(Math.random() * 100 - 50))
+      }));
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Animate recent wins
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const newWin = {
+        player: `Player${Math.floor(Math.random() * 999)}`,
+        game: games[Math.floor(Math.random() * games.length)].name,
+        amount: Math.floor(Math.random() * 2000) + 100,
+        multiplier: `${(Math.random() * 20 + 1).toFixed(1)}x`
+      };
+      setRecentWins(prev => [newWin, ...prev.slice(0, 3)]);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const { data: leaderboard } = useQuery({
+    queryKey: ["/api/leaderboard"],
+    refetchInterval: 30000,
+  });
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-casino-dark via-casino-navy to-casino-dark flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[hsl(220,91%,57%)]"></div>
-          <p className="mt-4 text-lg">Loading your gaming dashboard...</p>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[hsl(220,91%,57%)] mx-auto"></div>
+          <p className="mt-4 text-lg text-white">Loading your gaming experience...</p>
         </div>
       </div>
     );
   }
 
-  if (!isAuthenticated || !user) {
-    return null;
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-casino-dark via-casino-navy to-casino-dark flex items-center justify-center">
+        <div className="text-center text-white">
+          <h2 className="text-2xl font-bold mb-4">Please log in to continue</h2>
+          <Button onClick={() => window.location.href = "/api/login"}>
+            Login
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-casino-dark via-casino-navy to-casino-dark text-white">
       <Header />
       
-      {/* Hero Section */}
-      <section className="py-12 px-4">
-        <div className="container mx-auto text-center">
-          <h2 className="text-5xl font-bold mb-4 bg-gradient-to-r from-[hsl(220,91%,57%)] via-[hsl(258,90%,66%)] to-[hsl(43,96%,56%)] bg-clip-text text-transparent">
-            Welcome Back, {user.firstName || 'Player'}!
-          </h2>
-          <p className="text-xl text-[hsl(215,13%,45%)] mb-8 max-w-2xl mx-auto">
-            Your gaming adventure continues. Choose from our diverse selection of games and win big!
-          </p>
-        </div>
-      </section>
+      <div className="container mx-auto px-4 py-8">
+        {/* Welcome Section with Live Stats */}
+        <div className="mb-8">
+          <div className="text-center mb-6">
+            <h1 className="text-4xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-[hsl(220,91%,57%)] via-[hsl(258,90%,66%)] to-[hsl(43,96%,56%)] bg-clip-text text-transparent animate-pulse">
+              Welcome Back, {user.name || 'Player'}!
+            </h1>
+            <p className="text-[hsl(215,13%,45%)] text-lg">
+              Ready to win big? Choose your game and let the excitement begin!
+            </p>
+          </div>
 
-      {/* Games Selection */}
-      <section id="games" className="py-16 px-4">
-        <div className="container mx-auto">
-          <h3 className="text-3xl font-bold text-center mb-12">Choose Your Game</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {games.map((game) => (
-              <GameCard key={game.id} game={game} />
-            ))}
+          {/* Live Casino Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <Card className="glass-effect hover:scale-105 transition-transform duration-300">
+              <CardContent className="p-4 text-center">
+                <Users className="w-8 h-8 text-[hsl(220,91%,57%)] mx-auto mb-2" />
+                <div className="text-2xl font-bold text-[hsl(43,96%,56%)]" data-testid="live-players">
+                  {liveStats.onlinePlayers.toLocaleString()}
+                </div>
+                <div className="text-xs text-[hsl(215,13%,45%)]">Players Online</div>
+              </CardContent>
+            </Card>
+            
+            <Card className="glass-effect hover:scale-105 transition-transform duration-300">
+              <CardContent className="p-4 text-center">
+                <TrendingUp className="w-8 h-8 text-green-400 mx-auto mb-2" />
+                <div className="text-2xl font-bold text-[hsl(43,96%,56%)]">
+                  ${(liveStats.totalWinnings / 1000000).toFixed(1)}M
+                </div>
+                <div className="text-xs text-[hsl(215,13%,45%)]">Total Winnings</div>
+              </CardContent>
+            </Card>
+            
+            <Card className="glass-effect hover:scale-105 transition-transform duration-300">
+              <CardContent className="p-4 text-center">
+                <Zap className="w-8 h-8 text-[hsl(258,90%,66%)] mx-auto mb-2" />
+                <div className="text-2xl font-bold text-[hsl(43,96%,56%)]">
+                  {liveStats.gamesPlayed.toLocaleString()}
+                </div>
+                <div className="text-xs text-[hsl(215,13%,45%)]">Games Today</div>
+              </CardContent>
+            </Card>
+            
+            <Card className="glass-effect hover:scale-105 transition-transform duration-300">
+              <CardContent className="p-4 text-center">
+                <Award className="w-8 h-8 text-[hsl(43,96%,56%)] mx-auto mb-2" />
+                <div className="text-2xl font-bold text-[hsl(43,96%,56%)]">
+                  ${liveStats.biggestWin.toLocaleString()}
+                </div>
+                <div className="text-xs text-[hsl(215,13%,45%)]">Biggest Win</div>
+              </CardContent>
+            </Card>
           </div>
         </div>
-      </section>
 
-      {/* User Dashboard */}
-      <section className="py-16 px-4 bg-gradient-to-r from-[hsl(240,17%,12%)]/50 to-[hsl(240,18%,8%)]/50">
-        <div className="container mx-auto">
-          <h3 className="text-3xl font-bold text-center mb-12">Your Gaming Dashboard</h3>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <WalletSection user={user} />
-            <UserStats user={user} gameHistory={gameHistory} />
-            <div className="glass-effect p-6 rounded-xl">
-              <h4 className="text-xl font-semibold mb-6 flex items-center">
-                <span className="mr-3">🎯</span>
-                Quick Actions
-              </h4>
-              
-              <div className="space-y-3">
-                <button 
-                  className="w-full bg-gradient-to-r from-[hsl(220,91%,57%)] to-[hsl(258,90%,66%)] py-3 rounded-lg hover:shadow-lg hover:shadow-[hsl(220,91%,57%)]/25 transition-all duration-300"
-                  data-testid="button-play-slots"
-                  onClick={() => window.location.href = "/games/slots"}
-                >
-                  🎰 Play Lucky Slots
-                </button>
-                <button 
-                  className="w-full bg-gradient-to-r from-green-500 to-green-600 py-3 rounded-lg hover:shadow-lg hover:shadow-green-500/25 transition-all duration-300"
-                  data-testid="button-join-crash"
-                  onClick={() => window.location.href = "/games/crash"}
-                >
-                  🚀 Join Crash Game
-                </button>
-                <button 
-                  className="w-full bg-gradient-to-r from-[hsl(43,96%,56%)] to-yellow-600 py-3 rounded-lg hover:shadow-lg hover:shadow-[hsl(43,96%,56%)]/25 transition-all duration-300"
-                  data-testid="button-view-leaderboard"
-                  onClick={() => window.location.href = "/leaderboard"}
-                >
-                  🏆 View Leaderboard
-                </button>
-              </div>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* Main Games Section */}
+          <div className="lg:col-span-3">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-3xl font-bold">🎮 Choose Your Game</h2>
+              <Badge variant="secondary" className="bg-[hsl(43,96%,56%)]/20 text-[hsl(43,96%,56%)]">
+                <Star className="w-4 h-4 mr-1" />
+                7 Games Available
+              </Badge>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {games.map((game, index) => (
+                <Card key={game.id} className="glass-effect hover:scale-105 hover:shadow-lg hover:shadow-[hsl(220,91%,57%)]/25 transition-all duration-300 group" style={{ animationDelay: `${index * 0.1}s` }}>
+                  <CardContent className="p-6">
+                    <div className="text-center mb-4">
+                      <div className="text-6xl mb-3 group-hover:scale-110 transition-transform duration-300">
+                        {game.image}
+                      </div>
+                      <h3 className="text-xl font-bold mb-2">{game.name}</h3>
+                      <p className="text-[hsl(215,13%,45%)] text-sm mb-3">{game.description}</p>
+                      
+                      {/* Popularity Bar */}
+                      <div className="mb-3">
+                        <div className="flex justify-between text-xs mb-1">
+                          <span>Popularity</span>
+                          <span>{game.popularity}%</span>
+                        </div>
+                        <div className="w-full bg-[hsl(240,18%,8%)] rounded-full h-2">
+                          <div 
+                            className="bg-gradient-to-r from-[hsl(220,91%,57%)] to-[hsl(258,90%,66%)] h-2 rounded-full transition-all duration-1000"
+                            style={{ width: `${game.popularity}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                      
+                      <Badge variant="outline" className="border-[hsl(43,96%,56%)] text-[hsl(43,96%,56%)] mb-4">
+                        {game.status}
+                      </Badge>
+                    </div>
+                    
+                    <Link href={game.path}>
+                      <Button 
+                        className={`w-full bg-gradient-to-r ${game.buttonColor} hover:shadow-lg transition-all duration-300 group-hover:scale-105`}
+                        data-testid={`button-${game.id}`}
+                      >
+                        {game.buttonText}
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* Live Chat */}
-      <LiveChat />
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* User Stats & Wallet */}
+            <UserStats />
+            <WalletSection />
 
-      {/* Footer */}
-      <footer className="bg-[hsl(240,18%,8%)] border-t border-[hsl(220,91%,57%)]/20 py-12 px-4">
-        <div className="container mx-auto text-center">
-          <p className="text-[hsl(215,13%,45%)]">
-            &copy; 2024 CryptoGaming. All rights reserved. Play responsibly with virtual currency only.
-          </p>
+            {/* Recent Big Wins */}
+            <Card className="glass-effect">
+              <CardContent className="p-6">
+                <h3 className="text-xl font-bold mb-4 flex items-center">
+                  <Star className="w-5 h-5 mr-2 text-[hsl(43,96%,56%)]" />
+                  Recent Big Wins
+                </h3>
+                <div className="space-y-3">
+                  {recentWins.map((win, index) => (
+                    <div key={index} className="flex justify-between items-center p-3 bg-[hsl(240,18%,8%)]/50 rounded-lg animate-pulse">
+                      <div>
+                        <div className="font-semibold text-sm">{win.player}</div>
+                        <div className="text-xs text-[hsl(215,13%,45%)]">{win.game}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-[hsl(43,96%,56%)] font-bold">${win.amount}</div>
+                        <div className="text-xs text-green-400">{win.multiplier}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Top Players */}
+            {leaderboard && (
+              <Card className="glass-effect">
+                <CardContent className="p-6">
+                  <h3 className="text-xl font-bold mb-4 flex items-center">
+                    <Award className="w-5 h-5 mr-2 text-[hsl(43,96%,56%)]" />
+                    Top Players
+                  </h3>
+                  <div className="space-y-3">
+                    {leaderboard.slice(0, 5).map((player: any, index: number) => (
+                      <div key={player.id} className="flex justify-between items-center">
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="outline" className="w-6 h-6 p-0 flex items-center justify-center text-xs">
+                            {index + 1}
+                          </Badge>
+                          <span className="font-medium">{player.name}</span>
+                        </div>
+                        <span className="text-[hsl(43,96%,56%)] font-bold">
+                          ${parseFloat(player.totalWinnings).toFixed(0)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <Link href="/leaderboard">
+                    <Button variant="outline" className="w-full mt-4" size="sm">
+                      View Full Leaderboard
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Live Chat */}
+            <LiveChat />
+          </div>
         </div>
-      </footer>
+      </div>
     </div>
   );
 }

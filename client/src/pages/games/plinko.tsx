@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -16,7 +17,8 @@ export default function Plinko() {
   const [betAmount, setBetAmount] = useState(10);
   const [dropping, setDropping] = useState(false);
   const [lastResult, setLastResult] = useState<any>(null);
-  const [ballPosition, setBallPosition] = useState<number>(6); // Starting position (center)
+  const [ballPosition, setBallPosition] = useState<number>(6);
+  const [ballDropAnimation, setBallDropAnimation] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -37,28 +39,31 @@ export default function Plinko() {
       return response.json();
     },
     onSuccess: (data) => {
-      setLastResult(data);
-      setBallPosition(data.gameData.slot);
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      
-      const multiplier = multipliers[data.gameData.slot];
-      if (multiplier >= 2) {
-        toast({
-          title: "Big Win! 🎉",
-          description: `Ball landed on ${multiplier}x multiplier! Won $${data.winAmount.toFixed(2)}!`,
-        });
-      } else if (multiplier >= 1) {
-        toast({
-          title: "Nice! ⚪",
-          description: `Ball landed on ${multiplier}x multiplier! Won $${data.winAmount.toFixed(2)}!`,
-        });
-      } else {
-        toast({
-          title: "Better luck next time!",
-          description: `Ball landed on ${multiplier}x multiplier. Try again!`,
-          variant: "destructive",
-        });
-      }
+      // Delay showing results until ball drop animation completes
+      setTimeout(() => {
+        setLastResult(data);
+        setBallPosition(data.gameData.slot);
+        queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+        
+        const multiplier = multipliers[data.gameData.slot];
+        if (multiplier >= 2) {
+          toast({
+            title: "Big Win! 🎉",
+            description: `Ball landed on ${multiplier}x multiplier! Won $${data.winAmount.toFixed(2)}!`,
+          });
+        } else if (multiplier >= 1) {
+          toast({
+            title: "Nice! ⚪",
+            description: `Ball landed on ${multiplier}x multiplier! Won $${data.winAmount.toFixed(2)}!`,
+          });
+        } else {
+          toast({
+            title: "Better luck next time!",
+            description: `Ball landed on ${multiplier}x multiplier. Try again!`,
+            variant: "destructive",
+          });
+        }
+      }, 3000); // Wait for ball drop animation to complete
     },
     onError: (error: Error) => {
       if (isUnauthorizedError(error)) {
@@ -95,11 +100,15 @@ export default function Plinko() {
 
     setDropping(true);
     setLastResult(null);
+    setBallDropAnimation(true);
     
-    // Animate ball dropping
+    // Start the mutation immediately but don't show results until animation completes
+    dropMutation.mutate({ betAmount });
+    
+    // Reset animation states after ball drop completes
     setTimeout(() => {
-      dropMutation.mutate({ betAmount });
       setDropping(false);
+      setBallDropAnimation(false);
     }, 3000);
   };
 
@@ -152,7 +161,7 @@ export default function Plinko() {
               <Card className="glass-effect">
                 <CardContent className="p-8">
                   {/* Plinko Board */}
-                  <div className="relative bg-gradient-to-b from-[hsl(220,91%,57%)]/10 to-[hsl(258,90%,66%)]/10 border-2 border-[hsl(220,91%,57%)]/20 rounded-lg p-6 mb-6" style={{ height: '500px' }}>
+                  <div className="relative bg-gradient-to-b from-[hsl(220,91%,57%)]/10 to-[hsl(258,90%,66%)]/10 border-2 border-[hsl(220,91%,57%)]/20 rounded-lg p-6 mb-6 overflow-hidden" style={{ height: '500px' }}>
                     {/* Drop Zone */}
                     <div className="text-center mb-4">
                       <div className="inline-block p-2 border-2 border-[hsl(43,96%,56%)] rounded-lg">
@@ -162,33 +171,65 @@ export default function Plinko() {
 
                     {/* Ball */}
                     <div className="relative">
-                      <div className={`absolute top-0 left-1/2 transform -translate-x-1/2 transition-all duration-3000 ${
-                        dropping ? 'animate-bounce' : ''
-                      }`}>
-                        <div className="w-6 h-6 bg-white rounded-full shadow-lg border-2 border-[hsl(220,91%,57%)]" data-testid="ball">
-                          ⚪
-                        </div>
+                      <div 
+                        className={`absolute w-6 h-6 bg-white rounded-full shadow-lg border-2 border-[hsl(220,91%,57%)] flex items-center justify-center transition-all ${
+                          ballDropAnimation 
+                            ? 'animate-bounce duration-3000' 
+                            : ''
+                        }`}
+                        style={{
+                          top: ballDropAnimation ? '400px' : '0px',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          zIndex: 10
+                        }}
+                        data-testid="ball"
+                      >
+                        ⚪
                       </div>
                     </div>
 
-                    {/* Pegs Grid */}
-                    <div className="absolute inset-6 top-20">
-                      {Array.from({ length: 8 }, (_, row) => (
-                        <div key={row} className="flex justify-center space-x-8 mb-8" style={{ marginLeft: `${row * 20}px` }}>
-                          {Array.from({ length: 13 - row }, (_, col) => (
-                            <div key={col} className="w-2 h-2 bg-[hsl(215,13%,45%)] rounded-full"></div>
-                          ))}
-                        </div>
-                      ))}
+                    {/* Properly Aligned Pegs Grid */}
+                    <div className="absolute inset-0 flex flex-col justify-center items-center" style={{ top: '80px', height: '300px' }}>
+                      {Array.from({ length: 8 }, (_, row) => {
+                        const pegsInRow = 13 - row;
+                        const offset = row * 15; // Reduced offset for better alignment
+                        return (
+                          <div 
+                            key={row} 
+                            className="flex justify-center items-center"
+                            style={{ 
+                              marginBottom: '15px',
+                              width: '100%'
+                            }}
+                          >
+                            <div 
+                              className="flex justify-center space-x-6"
+                              style={{ 
+                                marginLeft: `${offset}px`,
+                                marginRight: `${offset}px`
+                              }}
+                            >
+                              {Array.from({ length: pegsInRow }, (_, col) => (
+                                <div 
+                                  key={col} 
+                                  className="w-3 h-3 bg-[hsl(215,13%,45%)] rounded-full shadow-md border border-[hsl(220,91%,57%)]/30"
+                                ></div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
 
-                    {/* Ball Landing Position */}
-                    {lastResult && !dropping && (
+                    {/* Ball Landing Position - Only show after result is available */}
+                    {lastResult && !ballDropAnimation && (
                       <div 
-                        className="absolute bottom-20 w-6 h-6 bg-[hsl(43,96%,56%)] rounded-full animate-pulse"
+                        className="absolute bottom-16 w-6 h-6 bg-[hsl(43,96%,56%)] rounded-full animate-pulse flex items-center justify-center shadow-lg"
                         style={{ 
-                          left: `${(ballPosition / (multipliers.length - 1)) * 100}%`,
-                          transform: 'translateX(-50%)'
+                          left: `${12 + (ballPosition * 75)}px`,
+                          transform: 'translateX(-50%)',
+                          zIndex: 10
                         }}
                         data-testid="ball-final-position"
                       >
@@ -197,14 +238,14 @@ export default function Plinko() {
                     )}
                   </div>
 
-                  {/* Multiplier Slots */}
+                  {/* Multiplier Slots - Properly Spaced */}
                   <div className="grid grid-cols-13 gap-1 mb-6">
                     {multipliers.map((multiplier, index) => (
                       <div
                         key={index}
-                        className={`text-center py-3 px-1 rounded font-bold text-sm border-2 ${
-                          lastResult && ballPosition === index 
-                            ? 'border-[hsl(43,96%,56%)] animate-pulse' 
+                        className={`text-center py-3 px-1 rounded font-bold text-sm border-2 transition-all duration-300 ${
+                          lastResult && ballPosition === index && !ballDropAnimation
+                            ? 'border-[hsl(43,96%,56%)] animate-pulse scale-110' 
                             : 'border-transparent'
                         } ${getMultiplierColor(multiplier)}`}
                         data-testid={`multiplier-slot-${index}`}
@@ -214,9 +255,9 @@ export default function Plinko() {
                     ))}
                   </div>
 
-                  {/* Result Display */}
-                  {lastResult && !dropping && (
-                    <div className="text-center mb-6" data-testid="result-display">
+                  {/* Result Display - Only show after animation completes */}
+                  {lastResult && !ballDropAnimation && (
+                    <div className="text-center mb-6 animate-fadeIn" data-testid="result-display">
                       <div className="text-3xl font-bold text-[hsl(43,96%,56%)] mb-2">
                         {multipliers[ballPosition]}x MULTIPLIER!
                       </div>
@@ -231,6 +272,18 @@ export default function Plinko() {
                     </div>
                   )}
 
+                  {/* Ball Dropping Indicator */}
+                  {ballDropAnimation && (
+                    <div className="text-center mb-6">
+                      <div className="text-2xl font-bold text-[hsl(43,96%,56%)] animate-pulse">
+                        Ball is dropping...
+                      </div>
+                      <div className="text-lg text-[hsl(215,13%,45%)]">
+                        Watch it bounce through the pegs!
+                      </div>
+                    </div>
+                  )}
+
                   {/* Controls */}
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
@@ -241,7 +294,7 @@ export default function Plinko() {
                         onChange={(e) => setBetAmount(Math.max(1, parseInt(e.target.value) || 1))}
                         min={1}
                         max={Math.floor(parseFloat(user.balance))}
-                        disabled={dropping}
+                        disabled={dropping || ballDropAnimation}
                         className="bg-[hsl(240,18%,8%)]/50 border-[hsl(220,91%,57%)]/20 text-white"
                         data-testid="input-bet-amount"
                       />
@@ -256,16 +309,16 @@ export default function Plinko() {
 
                   <Button
                     onClick={handleDrop}
-                    disabled={dropping || dropMutation.isPending}
+                    disabled={dropping || dropMutation.isPending || ballDropAnimation}
                     className="w-full bg-gradient-to-r from-[hsl(220,91%,57%)] to-blue-600 hover:shadow-lg hover:shadow-[hsl(220,91%,57%)]/25 transition-all duration-300 text-xl py-4"
                     data-testid="button-drop"
                   >
-                    {dropping ? (
+                    {ballDropAnimation ? (
                       <Circle className="mr-2 h-6 w-6 animate-bounce" />
                     ) : (
                       "⚪"
                     )}
-                    {dropping ? "DROPPING..." : `DROP BALL (${betAmount} credits)`}
+                    {ballDropAnimation ? "BALL DROPPING..." : `DROP BALL ($${betAmount})`}
                   </Button>
                 </CardContent>
               </Card>
@@ -334,7 +387,7 @@ export default function Plinko() {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-[hsl(215,13%,45%)]">Max Multiplier</span>
-                      <span className="text-[hsl(43,96%,56%)]">1000x</span>
+                      <span className="text-[hsl(43,96%,56%)]">10x</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-[hsl(215,13%,45%)]">Min Bet</span>
@@ -363,7 +416,7 @@ export default function Plinko() {
                         onClick={() => setBetAmount(amount)}
                         variant="outline"
                         size="sm"
-                        disabled={dropping}
+                        disabled={dropping || ballDropAnimation}
                         className="border-[hsl(220,91%,57%)]/20 hover:bg-[hsl(220,91%,57%)]/20"
                         data-testid={`button-quick-bet-${amount}`}
                       >
@@ -379,7 +432,7 @@ export default function Plinko() {
                 <CardContent className="p-6">
                   <h3 className="text-xl font-bold mb-4">Recent Drops</h3>
                   <div className="space-y-2">
-                    {lastResult && (
+                    {lastResult && !ballDropAnimation && (
                       <div className="flex justify-between items-center p-2 bg-[hsl(240,18%,8%)]/50 rounded text-sm" data-testid="last-result">
                         <span>{multipliers[ballPosition]}x</span>
                         <span className={`${
@@ -390,9 +443,9 @@ export default function Plinko() {
                         </span>
                       </div>
                     )}
-                    {!lastResult && (
+                    {(!lastResult || ballDropAnimation) && (
                       <div className="text-[hsl(215,13%,45%)] text-center py-4 text-sm">
-                        No drops yet. Start playing!
+                        {ballDropAnimation ? "Ball is dropping..." : "No drops yet. Start playing!"}
                       </div>
                     )}
                   </div>
