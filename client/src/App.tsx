@@ -13,11 +13,6 @@ import Roulette from "@/pages/games/roulette";
 import Blackjack from "@/pages/games/blackjack";
 import Plinko from "@/pages/games/plinko";
 import CoinFlip from "@/pages/games/coinflip";
-import Baccarat from "@/pages/games/baccarat";
-import Keno from "@/pages/games/keno";
-import Wheel from "@/pages/games/wheel";
-import Mines from "@/pages/games/mines";
-import HiLo from "@/pages/games/hilo";
 import Leaderboard from "@/pages/leaderboard";
 import NotFound from "@/pages/not-found";
 
@@ -38,11 +33,6 @@ function Router() {
           <Route path="/games/blackjack" component={Blackjack} />
           <Route path="/games/plinko" component={Plinko} />
           <Route path="/games/coinflip" component={CoinFlip} />
-          <Route path="/games/baccarat" component={Baccarat} />
-          <Route path="/games/keno" component={Keno} />
-          <Route path="/games/wheel" component={Wheel} />
-          <Route path="/games/mines" component={Mines} />
-          <Route path="/games/hilo" component={HiLo} />
           <Route path="/leaderboard" component={Leaderboard} />
         </>
       )}
