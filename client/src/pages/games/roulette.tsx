@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -9,7 +10,7 @@ import Header from "@/components/Header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, RotateCcw } from "lucide-react";
+import { ArrowLeft, RotateCcw, Trash2 } from "lucide-react";
 import { Link } from "wouter";
 
 interface Bet {
@@ -144,8 +145,8 @@ export default function Roulette() {
     <div className="min-h-screen bg-gradient-to-br from-casino-dark via-casino-navy to-casino-dark text-white">
       <Header />
       
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-6">
+      <div className="container mx-auto px-4 py-4 lg:py-8">
+        <div className="mb-4 lg:mb-6">
           <Link href="/">
             <Button variant="ghost" className="text-[hsl(215,13%,45%)] hover:text-white" data-testid="button-back">
               <ArrowLeft className="mr-2 h-4 w-4" />
@@ -154,48 +155,49 @@ export default function Roulette() {
           </Link>
         </div>
 
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-[hsl(220,91%,57%)] via-[hsl(258,90%,66%)] to-[hsl(43,96%,56%)] bg-clip-text text-transparent">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-6 lg:mb-8">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 lg:mb-4 bg-gradient-to-r from-[hsl(220,91%,57%)] via-[hsl(258,90%,66%)] to-[hsl(43,96%,56%)] bg-clip-text text-transparent">
               🎯 European Roulette
             </h1>
-            <p className="text-[hsl(215,13%,45%)] text-lg">
+            <p className="text-[hsl(215,13%,45%)] text-sm lg:text-lg">
               Place your bets and watch the wheel spin! Single zero European style.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            {/* Roulette Wheel */}
-            <div className="lg:col-span-2">
+          <div className="space-y-6 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-6">
+            {/* Main Game Area */}
+            <div className="lg:col-span-8">
               <Card className="glass-effect">
-                <CardContent className="p-8">
-                  <div className="text-center mb-8">
+                <CardContent className="p-4 lg:p-6">
+                  {/* Roulette Wheel */}
+                  <div className="text-center mb-6">
                     <div className="relative inline-block">
-                      <div className={`w-48 h-48 rounded-full border-8 border-[hsl(43,96%,56%)] bg-gradient-to-br from-green-800 to-green-900 flex items-center justify-center mx-auto ${
+                      <div className={`w-32 h-32 sm:w-40 sm:h-40 lg:w-48 lg:h-48 rounded-full border-4 lg:border-8 border-[hsl(43,96%,56%)] bg-gradient-to-br from-green-800 to-green-900 flex items-center justify-center mx-auto ${
                         spinning ? 'animate-spin' : ''
                       }`}>
-                        <div className="w-32 h-32 rounded-full bg-black flex items-center justify-center">
-                          <div className="text-4xl text-[hsl(43,96%,56%)]">
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 lg:w-32 lg:h-32 rounded-full bg-black flex items-center justify-center">
+                          <div className="text-xl sm:text-2xl lg:text-4xl text-[hsl(43,96%,56%)]">
                             {spinning ? '🎯' : (lastResult?.gameData?.number ?? '?')}
                           </div>
                         </div>
                       </div>
                       {spinning && (
-                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-2xl">
+                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-lg sm:text-xl lg:text-2xl">
                           ⚪
                         </div>
                       )}
                     </div>
                     
                     {lastResult && !spinning && (
-                      <div className="mt-6" data-testid="result-display">
-                        <div className={`text-3xl font-bold ${
+                      <div className="mt-4 lg:mt-6" data-testid="result-display">
+                        <div className={`text-xl sm:text-2xl lg:text-3xl font-bold ${
                           lastResult.result === 'win' ? 'text-green-400' : 'text-red-400'
                         }`}>
                           {lastResult.result === 'win' ? 'WINNER!' : 'NO WIN'}
                         </div>
-                        <div className="text-xl">
-                          <span className={`px-3 py-1 rounded ${
+                        <div className="text-lg sm:text-xl">
+                          <span className={`px-2 lg:px-3 py-1 rounded text-sm sm:text-base lg:text-lg ${
                             lastResult.gameData.color === 'red' ? 'bg-red-600' :
                             lastResult.gameData.color === 'black' ? 'bg-black' :
                             'bg-green-600'
@@ -203,7 +205,7 @@ export default function Roulette() {
                             {lastResult.gameData.number} {lastResult.gameData.color.toUpperCase()}
                           </span>
                         </div>
-                        <div className="text-lg text-[hsl(43,96%,56%)] mt-2">
+                        <div className="text-sm sm:text-base lg:text-lg text-[hsl(43,96%,56%)] mt-2">
                           {lastResult.result === 'win' ? '+' : '-'}${Math.abs(lastResult.winAmount - (lastResult.winAmount || lastResult.betAmount)).toFixed(2)}
                         </div>
                       </div>
@@ -211,53 +213,53 @@ export default function Roulette() {
                   </div>
 
                   {/* Quick Bet Buttons */}
-                  <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="grid grid-cols-3 gap-2 lg:gap-4 mb-4 lg:mb-6">
                     <Button
                       onClick={() => addBet({ type: 'color', value: 'red' })}
                       disabled={spinning}
-                      className="bg-red-600 hover:bg-red-700 py-4"
+                      className="bg-red-600 hover:bg-red-700 py-2 lg:py-4 text-xs sm:text-sm lg:text-base"
                       data-testid="button-bet-red"
                     >
                       <div className="text-center">
-                        <div className="text-lg font-bold">RED</div>
-                        <div className="text-sm">Pays 2:1</div>
+                        <div className="font-bold">RED</div>
+                        <div className="text-xs">Pays 2:1</div>
                       </div>
                     </Button>
 
                     <Button
                       onClick={() => addBet({ type: 'color', value: 'black' })}
                       disabled={spinning}
-                      className="bg-black hover:bg-gray-800 py-4"
+                      className="bg-black hover:bg-gray-800 py-2 lg:py-4 text-xs sm:text-sm lg:text-base"
                       data-testid="button-bet-black"
                     >
                       <div className="text-center">
-                        <div className="text-lg font-bold">BLACK</div>
-                        <div className="text-sm">Pays 2:1</div>
+                        <div className="font-bold">BLACK</div>
+                        <div className="text-xs">Pays 2:1</div>
                       </div>
                     </Button>
 
                     <Button
                       onClick={() => addBet({ type: 'color', value: 'green' })}
                       disabled={spinning}
-                      className="bg-green-600 hover:bg-green-700 py-4"
+                      className="bg-green-600 hover:bg-green-700 py-2 lg:py-4 text-xs sm:text-sm lg:text-base"
                       data-testid="button-bet-green"
                     >
                       <div className="text-center">
-                        <div className="text-lg font-bold">GREEN (0)</div>
-                        <div className="text-sm">Pays 35:1</div>
+                        <div className="font-bold">GREEN (0)</div>
+                        <div className="text-xs">Pays 35:1</div>
                       </div>
                     </Button>
                   </div>
 
                   {/* Number Grid */}
-                  <div className="grid grid-cols-6 gap-1 mb-6">
+                  <div className="grid grid-cols-6 sm:grid-cols-8 lg:grid-cols-12 gap-1 mb-4 lg:mb-6">
                     {Array.from({ length: 37 }, (_, i) => (
                       <Button
                         key={i}
                         onClick={() => addBet({ type: 'number', value: i })}
                         disabled={spinning}
                         variant="outline"
-                        className={`aspect-square text-sm font-bold ${
+                        className={`aspect-square text-xs sm:text-sm font-bold p-1 ${
                           i === 0 ? 'bg-green-600 border-green-600 text-white hover:bg-green-700' :
                           getNumberColor(i) === 'red' ? 'bg-red-600 border-red-600 text-white hover:bg-red-700' :
                           'bg-black border-gray-600 text-white hover:bg-gray-800'
@@ -270,67 +272,70 @@ export default function Roulette() {
                   </div>
 
                   {/* Bet Controls */}
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Bet Amount</label>
-                      <Input
-                        type="number"
-                        value={betAmount}
-                        onChange={(e) => setBetAmount(Math.max(1, parseInt(e.target.value) || 1))}
-                        min={1}
-                        max={Math.floor(parseFloat(user.balance))}
-                        disabled={spinning}
-                        className="bg-[hsl(240,18%,8%)]/50 border-[hsl(220,91%,57%)]/20 text-white"
-                        data-testid="input-bet-amount"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Balance</label>
-                      <div className="px-3 py-2 bg-[hsl(240,18%,8%)]/50 border border-[hsl(220,91%,57%)]/20 rounded-md text-[hsl(43,96%,56%)] font-bold" data-testid="display-balance">
-                        ${user.balance}
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Bet Amount</label>
+                        <Input
+                          type="number"
+                          value={betAmount}
+                          onChange={(e) => setBetAmount(Math.max(1, parseInt(e.target.value) || 1))}
+                          min={1}
+                          max={Math.floor(parseFloat(user.balance))}
+                          disabled={spinning}
+                          className="bg-[hsl(240,18%,8%)]/50 border-[hsl(220,91%,57%)]/20 text-white"
+                          data-testid="input-bet-amount"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Balance</label>
+                        <div className="px-3 py-2 bg-[hsl(240,18%,8%)]/50 border border-[hsl(220,91%,57%)]/20 rounded-md text-[hsl(43,96%,56%)] font-bold text-sm lg:text-base" data-testid="display-balance">
+                          ${user.balance}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <Button
-                      onClick={clearBets}
-                      disabled={spinning || bets.length === 0}
-                      variant="outline"
-                      className="border-red-500/20 hover:bg-red-500/20 text-red-400"
-                      data-testid="button-clear-bets"
-                    >
-                      Clear Bets
-                    </Button>
+                    <div className="grid grid-cols-2 gap-4">
+                      <Button
+                        onClick={clearBets}
+                        disabled={spinning || bets.length === 0}
+                        variant="outline"
+                        className="border-red-500/20 hover:bg-red-500/20 text-red-400 text-sm lg:text-base"
+                        data-testid="button-clear-bets"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Clear Bets
+                      </Button>
 
-                    <Button
-                      onClick={handleSpin}
-                      disabled={spinning || spinMutation.isPending || bets.length === 0}
-                      className="bg-gradient-to-r from-[hsl(43,96%,56%)] to-yellow-600 hover:shadow-lg hover:shadow-[hsl(43,96%,56%)]/25 transition-all duration-300"
-                      data-testid="button-spin"
-                    >
-                      {spinning ? (
-                        <RotateCcw className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        "🎯"
-                      )}
-                      {spinning ? "SPINNING..." : "SPIN WHEEL"}
-                    </Button>
+                      <Button
+                        onClick={handleSpin}
+                        disabled={spinning || spinMutation.isPending || bets.length === 0}
+                        className="bg-gradient-to-r from-[hsl(43,96%,56%)] to-yellow-600 hover:shadow-lg hover:shadow-[hsl(43,96%,56%)]/25 transition-all duration-300 text-sm lg:text-base"
+                        data-testid="button-spin"
+                      >
+                        {spinning ? (
+                          <RotateCcw className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          "🎯"
+                        )}
+                        {spinning ? "SPINNING..." : "SPIN WHEEL"}
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
             {/* Sidebar */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="lg:col-span-4 space-y-4 lg:space-y-6">
               {/* Active Bets */}
               <Card className="glass-effect">
-                <CardContent className="p-6">
-                  <h3 className="text-xl font-bold mb-4 text-[hsl(220,91%,57%)]">Active Bets</h3>
+                <CardContent className="p-4 lg:p-6">
+                  <h3 className="text-lg lg:text-xl font-bold mb-4 text-[hsl(220,91%,57%)]">Active Bets</h3>
                   {bets.length > 0 ? (
                     <div className="space-y-2" data-testid="active-bets">
                       {bets.map((bet, index) => (
-                        <div key={index} className="flex justify-between items-center p-2 bg-[hsl(240,18%,8%)]/50 rounded">
+                        <div key={index} className="flex justify-between items-center p-2 bg-[hsl(240,18%,8%)]/50 rounded text-sm lg:text-base">
                           <span className="capitalize">
                             {bet.type === 'number' ? `Number ${bet.value}` : 
                              bet.type === 'color' ? `${bet.value} Color` :
@@ -340,25 +345,47 @@ export default function Roulette() {
                         </div>
                       ))}
                       <div className="border-t border-[hsl(215,13%,45%)]/20 pt-2 mt-2">
-                        <div className="flex justify-between font-bold">
+                        <div className="flex justify-between font-bold text-sm lg:text-base">
                           <span>Total</span>
                           <span className="text-[hsl(43,96%,56%)]">${totalBetAmount}</span>
                         </div>
                       </div>
                     </div>
                   ) : (
-                    <div className="text-[hsl(215,13%,45%)] text-center py-4">
+                    <div className="text-[hsl(215,13%,45%)] text-center py-4 text-sm lg:text-base">
                       No bets placed yet
                     </div>
                   )}
                 </CardContent>
               </Card>
 
+              {/* Quick Bet Amounts */}
+              <Card className="glass-effect">
+                <CardContent className="p-4 lg:p-6">
+                  <h3 className="text-lg lg:text-xl font-bold mb-4">Quick Bet Amounts</h3>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[1, 5, 10, 25, 50, 100].map((amount) => (
+                      <Button
+                        key={amount}
+                        onClick={() => setBetAmount(amount)}
+                        variant="outline"
+                        size="sm"
+                        disabled={spinning}
+                        className="border-[hsl(43,96%,56%)]/20 hover:bg-[hsl(43,96%,56%)]/20 text-xs lg:text-sm"
+                        data-testid={`button-quick-bet-${amount}`}
+                      >
+                        ${amount}
+                      </Button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Payouts */}
               <Card className="glass-effect">
-                <CardContent className="p-6">
-                  <h3 className="text-xl font-bold mb-4 text-[hsl(258,90%,66%)]">Payouts</h3>
-                  <div className="space-y-2 text-sm">
+                <CardContent className="p-4 lg:p-6">
+                  <h3 className="text-lg lg:text-xl font-bold mb-4 text-[hsl(258,90%,66%)]">Payouts</h3>
+                  <div className="space-y-2 text-sm lg:text-base">
                     <div className="flex justify-between">
                       <span>Single Number</span>
                       <span className="text-[hsl(43,96%,56%)]">35:1</span>
@@ -381,9 +408,9 @@ export default function Roulette() {
 
               {/* Game Info */}
               <Card className="glass-effect">
-                <CardContent className="p-6">
-                  <h3 className="text-xl font-bold mb-4 text-[hsl(43,96%,56%)]">Game Info</h3>
-                  <div className="space-y-2 text-sm">
+                <CardContent className="p-4 lg:p-6">
+                  <h3 className="text-lg lg:text-xl font-bold mb-4 text-[hsl(43,96%,56%)]">Game Info</h3>
+                  <div className="space-y-2 text-sm lg:text-base">
                     <div className="flex justify-between">
                       <span className="text-[hsl(215,13%,45%)]">Type</span>
                       <span>European (Single Zero)</span>
@@ -400,28 +427,6 @@ export default function Roulette() {
                       <span className="text-[hsl(215,13%,45%)]">Max Bet</span>
                       <span>$1000</span>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Quick Bets */}
-              <Card className="glass-effect">
-                <CardContent className="p-6">
-                  <h3 className="text-xl font-bold mb-4">Quick Bet Amounts</h3>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[1, 5, 10, 25, 50, 100].map((amount) => (
-                      <Button
-                        key={amount}
-                        onClick={() => setBetAmount(amount)}
-                        variant="outline"
-                        size="sm"
-                        disabled={spinning}
-                        className="border-[hsl(43,96%,56%)]/20 hover:bg-[hsl(43,96%,56%)]/20"
-                        data-testid={`button-quick-bet-${amount}`}
-                      >
-                        ${amount}
-                      </Button>
-                    ))}
                   </div>
                 </CardContent>
               </Card>
