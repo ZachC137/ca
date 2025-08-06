@@ -387,22 +387,171 @@ function playRoulette(bet: any) {
 }
 
 function playBlackjack(gameData: any) {
-  // Simplified blackjack logic
-  const playerTotal = Math.floor(Math.random() * 10) + 12; // 12-21
-  const dealerTotal = Math.floor(Math.random() * 10) + 12; // 12-21
-  
-  let multiplier = 0;
-  if (playerTotal > 21) {
-    multiplier = 0; // Player busts
-  } else if (dealerTotal > 21) {
-    multiplier = 2; // Dealer busts
-  } else if (playerTotal > dealerTotal) {
-    multiplier = 2; // Player wins
-  } else if (playerTotal === dealerTotal) {
-    multiplier = 1; // Push
+  const { action, playerHand, dealerHand, gameState } = gameData;
+
+  // Create a deck of cards
+  function createDeck() {
+    const suits = ['♠', '♥', '♦', '♣'];
+    const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+    const deck = [];
+    
+    for (const suit of suits) {
+      for (const rank of ranks) {
+        deck.push({ rank, suit });
+      }
+    }
+    
+    // Shuffle deck
+    for (let i = deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+    
+    return deck;
   }
-  
-  return { playerTotal, dealerTotal, multiplier };
+
+  // Calculate hand value
+  function calculateHandValue(hand: any[]) {
+    let value = 0;
+    let aces = 0;
+    
+    for (const card of hand) {
+      if (card.rank === 'A') {
+        aces++;
+        value += 11;
+      } else if (['J', 'Q', 'K'].includes(card.rank)) {
+        value += 10;
+      } else {
+        value += parseInt(card.rank);
+      }
+    }
+    
+    // Adjust for aces
+    while (value > 21 && aces > 0) {
+      value -= 10;
+      aces--;
+    }
+    
+    return value;
+  }
+
+  // Deal initial hand
+  if (action === 'deal' || !gameState) {
+    const deck = createDeck();
+    const newPlayerHand = [deck.pop(), deck.pop()];
+    const newDealerHand = [deck.pop(), deck.pop()];
+    
+    const playerValue = calculateHandValue(newPlayerHand);
+    const dealerValue = calculateHandValue(newDealerHand);
+    
+    // Check for natural blackjack
+    const playerBlackjack = playerValue === 21;
+    const dealerBlackjack = dealerValue === 21;
+    
+    let multiplier = 0;
+    let gameComplete = false;
+    
+    if (playerBlackjack && dealerBlackjack) {
+      multiplier = 1; // Push
+      gameComplete = true;
+    } else if (playerBlackjack) {
+      multiplier = 2.5; // Blackjack pays 3:2
+      gameComplete = true;
+    } else if (dealerBlackjack) {
+      multiplier = 0; // Dealer blackjack
+      gameComplete = true;
+    }
+    
+    return {
+      playerHand: newPlayerHand,
+      dealerHand: newDealerHand,
+      playerValue,
+      dealerValue,
+      multiplier,
+      gameComplete,
+      canHit: !gameComplete && playerValue < 21,
+      canStand: !gameComplete,
+      remainingDeck: deck
+    };
+  }
+
+  // Handle hit action
+  if (action === 'hit') {
+    const deck = gameState.remainingDeck || createDeck();
+    const newPlayerHand = [...playerHand, deck.pop()];
+    const playerValue = calculateHandValue(newPlayerHand);
+    
+    let multiplier = 0;
+    let gameComplete = false;
+    
+    if (playerValue > 21) {
+      multiplier = 0; // Player busts
+      gameComplete = true;
+    }
+    
+    return {
+      playerHand: newPlayerHand,
+      dealerHand,
+      playerValue,
+      dealerValue: calculateHandValue(dealerHand),
+      multiplier,
+      gameComplete,
+      canHit: !gameComplete && playerValue < 21,
+      canStand: !gameComplete,
+      remainingDeck: deck
+    };
+  }
+
+  // Handle stand action
+  if (action === 'stand') {
+    let deck = gameState.remainingDeck || createDeck();
+    let newDealerHand = [...dealerHand];
+    let dealerValue = calculateHandValue(newDealerHand);
+    const playerValue = calculateHandValue(playerHand);
+    
+    // Dealer hits on 16, stands on 17
+    while (dealerValue < 17) {
+      newDealerHand.push(deck.pop());
+      dealerValue = calculateHandValue(newDealerHand);
+    }
+    
+    let multiplier = 0;
+    
+    if (dealerValue > 21) {
+      multiplier = 2; // Dealer busts
+    } else if (playerValue > dealerValue) {
+      multiplier = 2; // Player wins
+    } else if (playerValue === dealerValue) {
+      multiplier = 1; // Push
+    } else {
+      multiplier = 0; // Dealer wins
+    }
+    
+    return {
+      playerHand,
+      dealerHand: newDealerHand,
+      playerValue,
+      dealerValue,
+      multiplier,
+      gameComplete: true,
+      canHit: false,
+      canStand: false,
+      remainingDeck: deck
+    };
+  }
+
+  // Default fallback
+  return {
+    playerHand: playerHand || [],
+    dealerHand: dealerHand || [],
+    playerValue: calculateHandValue(playerHand || []),
+    dealerValue: calculateHandValue(dealerHand || []),
+    multiplier: 0,
+    gameComplete: false,
+    canHit: true,
+    canStand: true,
+    remainingDeck: []
+  };
 }
 
 function playPlinko() {

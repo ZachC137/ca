@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -15,6 +16,7 @@ import { Link } from "wouter";
 export default function Blackjack() {
   const [betAmount, setBetAmount] = useState(10);
   const [gameState, setGameState] = useState<'betting' | 'playing' | 'finished'>('betting');
+  const [gameData, setGameData] = useState<any>(null);
   const [lastResult, setLastResult] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -25,35 +27,66 @@ export default function Blackjack() {
   });
 
   const playMutation = useMutation({
-    mutationFn: async ({ betAmount }: { betAmount: number }) => {
+    mutationFn: async ({ action, gameData: currentGameData }: { action: string; gameData?: any }) => {
       const response = await apiRequest("POST", "/api/games/play", {
         gameType: "blackjack",
         betAmount,
-        gameData: {},
+        gameData: {
+          action,
+          playerHand: currentGameData?.playerHand || [],
+          dealerHand: currentGameData?.dealerHand || [],
+          gameState: currentGameData
+        },
       });
       return response.json();
     },
     onSuccess: (data) => {
+      setGameData(data.gameData);
       setLastResult(data);
-      setGameState('finished');
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       
-      if (data.result === 'win') {
-        toast({
-          title: "Blackjack! 🃏",
-          description: `You beat the dealer! Player: ${data.gameData.playerTotal}, Dealer: ${data.gameData.dealerTotal}. Won $${data.winAmount.toFixed(2)}!`,
-        });
-      } else if (data.result === 'push') {
-        toast({
-          title: "Push!",
-          description: `It's a tie! Player: ${data.gameData.playerTotal}, Dealer: ${data.gameData.dealerTotal}`,
-        });
+      if (data.gameData.gameComplete) {
+        setGameState('finished');
+        queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+        
+        const playerValue = data.gameData.playerValue;
+        const dealerValue = data.gameData.dealerValue;
+        
+        if (data.result === 'win') {
+          if (playerValue === 21 && data.gameData.playerHand.length === 2) {
+            toast({
+              title: "BLACKJACK! 🃏",
+              description: `Natural 21! Won $${data.winAmount.toFixed(2)} (3:2 payout)`,
+            });
+          } else {
+            toast({
+              title: "You Win! 🎉",
+              description: `Player: ${playerValue}, Dealer: ${dealerValue}. Won $${data.winAmount.toFixed(2)}!`,
+            });
+          }
+        } else if (data.result === 'push') {
+          toast({
+            title: "Push! 🤝",
+            description: `It's a tie! Player: ${playerValue}, Dealer: ${dealerValue}`,
+          });
+        } else {
+          const reason = playerValue > 21 ? "Player busts!" : 
+                       dealerValue > 21 ? "Dealer busts!" : "Dealer wins!";
+          toast({
+            title: reason,
+            description: `Player: ${playerValue}, Dealer: ${dealerValue}. Better luck next hand!`,
+            variant: "destructive",
+          });
+        }
       } else {
-        toast({
-          title: "Dealer wins",
-          description: `Player: ${data.gameData.playerTotal}, Dealer: ${data.gameData.dealerTotal}. Better luck next hand!`,
-          variant: "destructive",
-        });
+        // Game continues
+        if (data.gameData.playerValue > 21) {
+          setGameState('finished');
+          toast({
+            title: "Bust! 💥",
+            description: `Your hand went over 21. Better luck next time!`,
+            variant: "destructive",
+          });
+        }
       }
     },
     onError: (error: Error) => {
@@ -90,19 +123,44 @@ export default function Blackjack() {
     }
 
     setGameState('playing');
+    setGameData(null);
     setLastResult(null);
-    playMutation.mutate({ betAmount });
+    playMutation.mutate({ action: 'deal' });
+  };
+
+  const handleHit = () => {
+    playMutation.mutate({ action: 'hit', gameData });
+  };
+
+  const handleStand = () => {
+    playMutation.mutate({ action: 'stand', gameData });
   };
 
   const newGame = () => {
     setGameState('betting');
+    setGameData(null);
     setLastResult(null);
   };
 
-  const getCardValue = (total: number): string => {
-    if (total > 21) return `${total} (BUST)`;
-    if (total === 21) return `${total} (BLACKJACK!)`;
-    return total.toString();
+  const getCardDisplay = (card: any) => {
+    if (!card) return '🂠';
+    const suitColors: any = {
+      '♠': 'text-black',
+      '♣': 'text-black', 
+      '♥': 'text-red-500',
+      '♦': 'text-red-500'
+    };
+    return (
+      <div className={`${suitColors[card.suit]} font-bold text-lg`}>
+        {card.rank}{card.suit}
+      </div>
+    );
+  };
+
+  const getHandValue = (value: number): string => {
+    if (value > 21) return `${value} (BUST)`;
+    if (value === 21) return `${value} (21!)`;
+    return value.toString();
   };
 
   const getResultColor = (result: string): string => {
@@ -144,7 +202,7 @@ export default function Blackjack() {
               🃏 Classic Blackjack
             </h1>
             <p className="text-[hsl(215,13%,45%)] text-lg">
-              Beat the dealer by getting as close to 21 as possible without going over!
+              Get as close to 21 as possible without going over. Beat the dealer to win!
             </p>
           </div>
 
@@ -154,7 +212,7 @@ export default function Blackjack() {
               <Card className="glass-effect">
                 <CardContent className="p-8">
                   {/* Table */}
-                  <div className="bg-green-800 rounded-lg p-8 mb-6 relative">
+                  <div className="bg-green-800 rounded-lg p-8 mb-6 relative min-h-[400px]">
                     <div className="absolute top-4 left-4 text-[hsl(43,96%,56%)] font-bold">
                       DEALER
                     </div>
@@ -165,60 +223,58 @@ export default function Blackjack() {
                     {/* Dealer's Hand */}
                     <div className="text-center mb-8">
                       <h3 className="text-lg font-semibold mb-4 text-[hsl(43,96%,56%)]">Dealer's Hand</h3>
-                      <div className="flex justify-center space-x-2 mb-4">
+                      <div className="flex justify-center space-x-2 mb-4 flex-wrap">
                         {gameState === 'betting' ? (
                           <>
-                            <div className="w-16 h-24 bg-blue-900 border-2 border-white rounded-lg flex items-center justify-center">
+                            <div className="w-20 h-28 bg-blue-900 border-2 border-white rounded-lg flex items-center justify-center">
                               <Spade className="text-white" />
                             </div>
-                            <div className="w-16 h-24 bg-blue-900 border-2 border-white rounded-lg flex items-center justify-center">
+                            <div className="w-20 h-28 bg-blue-900 border-2 border-white rounded-lg flex items-center justify-center">
                               <Spade className="text-white" />
                             </div>
                           </>
                         ) : (
-                          <>
-                            <div className="w-16 h-24 bg-white border-2 border-gray-300 rounded-lg flex items-center justify-center text-black font-bold">
-                              🃏
+                          gameData?.dealerHand?.map((card: any, index: number) => (
+                            <div key={index} className="w-20 h-28 bg-white border-2 border-gray-300 rounded-lg flex items-center justify-center">
+                              {gameState === 'playing' && !gameData.gameComplete && index === 1 ? (
+                                <div className="text-blue-900 font-bold text-lg">🂠</div>
+                              ) : (
+                                getCardDisplay(card)
+                              )}
                             </div>
-                            <div className="w-16 h-24 bg-white border-2 border-gray-300 rounded-lg flex items-center justify-center text-black font-bold">
-                              🂠
-                            </div>
-                          </>
+                          ))
                         )}
                       </div>
                       <div className="text-xl font-bold" data-testid="dealer-total">
                         {gameState === 'betting' ? '?' : 
-                         lastResult ? getCardValue(lastResult.gameData.dealerTotal) : '?'}
+                         gameData ? (gameState === 'playing' && !gameData.gameComplete ? '?' : getHandValue(gameData.dealerValue)) : '?'}
                       </div>
                     </div>
 
                     {/* Player's Hand */}
                     <div className="text-center">
                       <h3 className="text-lg font-semibold mb-4 text-[hsl(43,96%,56%)]">Your Hand</h3>
-                      <div className="flex justify-center space-x-2 mb-4">
+                      <div className="flex justify-center space-x-2 mb-4 flex-wrap">
                         {gameState === 'betting' ? (
                           <>
-                            <div className="w-16 h-24 bg-blue-900 border-2 border-white rounded-lg flex items-center justify-center">
+                            <div className="w-20 h-28 bg-blue-900 border-2 border-white rounded-lg flex items-center justify-center">
                               <Spade className="text-white" />
                             </div>
-                            <div className="w-16 h-24 bg-blue-900 border-2 border-white rounded-lg flex items-center justify-center">
+                            <div className="w-20 h-28 bg-blue-900 border-2 border-white rounded-lg flex items-center justify-center">
                               <Spade className="text-white" />
                             </div>
                           </>
                         ) : (
-                          <>
-                            <div className="w-16 h-24 bg-white border-2 border-gray-300 rounded-lg flex items-center justify-center text-black font-bold">
-                              🂱
+                          gameData?.playerHand?.map((card: any, index: number) => (
+                            <div key={index} className="w-20 h-28 bg-white border-2 border-gray-300 rounded-lg flex items-center justify-center">
+                              {getCardDisplay(card)}
                             </div>
-                            <div className="w-16 h-24 bg-white border-2 border-gray-300 rounded-lg flex items-center justify-center text-black font-bold">
-                              🂾
-                            </div>
-                          </>
+                          ))
                         )}
                       </div>
                       <div className="text-xl font-bold" data-testid="player-total">
                         {gameState === 'betting' ? '?' : 
-                         lastResult ? getCardValue(lastResult.gameData.playerTotal) : '?'}
+                         gameData ? getHandValue(gameData.playerValue) : '?'}
                       </div>
                     </div>
 
@@ -274,14 +330,24 @@ export default function Blackjack() {
                       </>
                     )}
 
-                    {gameState === 'playing' && (
-                      <div className="text-center">
-                        <div className="text-lg text-[hsl(215,13%,45%)] mb-4">
-                          Dealing cards and calculating results...
-                        </div>
-                        <div className="animate-pulse">
-                          <Spade className="mx-auto h-8 w-8 text-[hsl(220,91%,57%)]" />
-                        </div>
+                    {gameState === 'playing' && gameData && !gameData.gameComplete && (
+                      <div className="grid grid-cols-2 gap-4">
+                        <Button
+                          onClick={handleHit}
+                          disabled={playMutation.isPending || !gameData.canHit}
+                          className="bg-gradient-to-r from-green-500 to-green-600 hover:shadow-lg hover:shadow-green-500/25 transition-all duration-300 text-xl py-4"
+                          data-testid="button-hit"
+                        >
+                          🃏 Hit
+                        </Button>
+                        <Button
+                          onClick={handleStand}
+                          disabled={playMutation.isPending || !gameData.canStand}
+                          className="bg-gradient-to-r from-red-500 to-red-600 hover:shadow-lg hover:shadow-red-500/25 transition-all duration-300 text-xl py-4"
+                          data-testid="button-stand"
+                        >
+                          ✋ Stand
+                        </Button>
                       </div>
                     )}
 
@@ -293,6 +359,17 @@ export default function Blackjack() {
                       >
                         🃏 New Game
                       </Button>
+                    )}
+
+                    {playMutation.isPending && (
+                      <div className="text-center">
+                        <div className="text-lg text-[hsl(215,13%,45%)] mb-4">
+                          Processing...
+                        </div>
+                        <div className="animate-pulse">
+                          <Spade className="mx-auto h-8 w-8 text-[hsl(220,91%,57%)]" />
+                        </div>
+                      </div>
                     )}
                   </div>
                 </CardContent>
@@ -316,15 +393,36 @@ export default function Blackjack() {
                     </div>
                     <div className="flex items-start space-x-2">
                       <span className="text-[hsl(220,91%,57%)]">•</span>
-                      <span>Face cards are worth 10</span>
+                      <span>Hit to draw another card</span>
                     </div>
                     <div className="flex items-start space-x-2">
                       <span className="text-[hsl(220,91%,57%)]">•</span>
-                      <span>Aces can be 1 or 11</span>
+                      <span>Stand to keep your current hand</span>
                     </div>
                     <div className="flex items-start space-x-2">
                       <span className="text-[hsl(220,91%,57%)]">•</span>
                       <span>Dealer hits on 16, stands on 17</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Card Values */}
+              <Card className="glass-effect">
+                <CardContent className="p-6">
+                  <h3 className="text-xl font-bold mb-4 text-[hsl(258,90%,66%)]">Card Values</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span>Ace</span>
+                      <span className="text-[hsl(43,96%,56%)]">1 or 11</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>2-10</span>
+                      <span className="text-green-400">Face Value</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>J, Q, K</span>
+                      <span className="text-yellow-400">10</span>
                     </div>
                   </div>
                 </CardContent>
